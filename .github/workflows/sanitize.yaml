@@ -19,7 +19,7 @@ on:
 jobs:
   purge-history:
     runs-on: ubuntu-latest
-
+    environment: dev
     steps:
       # Check out this repo so sanitize_history.py is available
       - name: Checkout workflow repository
