@@ -6,7 +6,13 @@ REPLACEMENT_TEXT = "--- REMOVED SECRET ---"
 
 def run_command(cmd, cwd=None):
     try:
-        result = subprocess.run(cmd, cwd=cwd, check=True, text=True, capture_output=True)
+        result = subprocess.run(
+            cmd,
+            cwd=cwd,
+            check=True,
+            text=True,
+            capture_output=True
+        )
         return result.stdout
     except subprocess.CalledProcessError as e:
         print(f"Error executing {' '.join(cmd)}:\n{e.stderr}")
@@ -21,7 +27,8 @@ def main():
         sys.exit(1)
 
     dict_file_path = os.path.abspath(os.path.join(workspace_dir, "dict.txt"))
-    with open(dict_file_path, "w") as f:
+
+    with open(dict_file_path, "w", encoding="utf-8") as f:
         f.write(f"literal:{target_secret}==>{REPLACEMENT_TEXT}\n")
 
     print("Running git-filter-repo to purge secrets from history...")
