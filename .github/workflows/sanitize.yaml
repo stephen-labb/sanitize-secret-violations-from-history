@@ -1,0 +1,53 @@
+name: Purge Secrets from Git History
+
+on:
+  # Allows you to trigger this manually from the "Actions" tab on GitHub
+  workflow_dispatch: 
+
+jobs:
+  purge-history:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Fetch the absolute full history of the repo
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Crucial: gets all commits, tags, and branches
+          persist-credentials: false # Prevents default token conflicts during force push
+
+      # 2. Setup Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 3. Install git-filter-repo via pip
+      - name: Install git-filter-repo
+        run: |
+          pip install git-filter-repo
+
+      # 4. Run the cleanup script
+      - name: Run Sanitizer Script
+        env:
+          # Pass your sensitive text from GitHub Secrets into the string map safely
+          # Format: TARGET_SECRET==REPLACEMENT_TEXT
+          SECRET_MAP: "${{ secrets.MY_SECRET_STRING }}==[REDACTED_BY_CI]"
+        run: python sanitize_history.py
+
+      # 5. Push the purged history back to GitHub
+      - name: Force Push Cleaned History
+        run: |
+          # Use the built-in GITHUB_TOKEN or a custom Personal Access Token (PAT) with write access
+          REMOTE_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          
+          # git-filter-repo strips remotes, so we must re-add our authenticated URL
+          git remote add origin "$REMOTE_URL"
+          
+          # Configure dummy git identity for the push command context
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          echo "Force pushing clean history back to GitHub..."
+          git push origin --force --all
+          git push origin --force --tags
